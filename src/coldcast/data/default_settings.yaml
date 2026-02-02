@@ -1,0 +1,469 @@
+# General settings
+output_dir: "./work"
+logger_name: "coldcast"
+log_file: "coldcast.log"
+log_xml_file: "coldcast_log.xml"
+xml_log: false
+run_info_file: ""
+run_info_netcdf: ""
+fews_name_space: "http://www.wldelft.nl/fews/PI"
+max_num_threads: 8
+wgrib2_path: "./bin/wgrib2.exe"
+
+ECCC_API:
+  url_base: https://api.weather.gc.ca/collections
+  limit: 100000
+  time_range: ""
+  station_csv: "ECCC_API_Stations.csv"
+  url_template: "{url_base}/{collection}/items?STATION_NUMBER={station}&limit={limit}&datetime={time_range}"
+  filename_template: "{station}_{collection}.json"
+  collections:
+    hydrometric-realtime:
+      collection: hydrometric-realtime
+      datetime_column: DATETIME
+      download_variables:
+        - DISCHARGE
+        - LEVEL
+    hydrometric-daily-mean:
+      collection: hydrometric-daily-mean
+      datetime_column: DATE
+      download_variables:
+        - DISCHARGE
+        - LEVEL
+
+NOAA_HRRR:
+  url_base: "https://nomads.ncep.noaa.gov/cgi-bin/"
+  filter_script: "filter_hrrrak_2d.pl"
+  domain: "alaska"
+  domain_suffix: ".ak"
+  product: "wrfsfcf"
+  delay_hours: 6
+  cycle_interval_hours: 3
+  bbox:
+    leftlon: 190
+    rightlon: 240
+    toplat: 75
+    bottomlat: 50
+  dir_template: "/hrrr.{date}/{domain}"
+  file_template: "hrrr.t{cycle_hour}z.{product}{forecast_hour:02d}{domain_suffix}.grib2"
+  forecast_hours:
+    start: 0
+    end: 24
+    step: 1
+  variables:
+    - var: APCP
+      level: surface
+    - var: TMP
+      level: 2_m_above_ground
+    #- var: UGRD
+    #  level: 10_m_above_ground
+    #- var: VGRD
+    #   level: 10_m_above_ground
+
+NOAA_GFS:
+  url_base: "https://nomads.ncep.noaa.gov/cgi-bin/"
+  filter_script: "filter_gfs_0p25.pl"
+  delay_hours: 6
+  cycle_interval_hours: 6
+  bbox:
+    leftlon: 190
+    rightlon: 240
+    toplat: 75
+    bottomlat: 50
+  dir_template: "/gfs.{date}/{cycle_hour}/atmos"
+  file_template: "gfs.t{cycle_hour}z.pgrb2.0p25.f{forecast_hour:03d}"
+  download_suffix: ".grib2"
+  forecast_hours:
+    - 0
+    - 3
+    - 6
+    - 9
+    - 12
+    - 15
+    - 18
+    - 21
+    - 24
+  variables:
+    - var: TMP
+      level: 2_m_above_ground
+    - var: PRMSL
+      level: mean_sea_level
+    - var: UGRD
+      level: 10_m_above_ground
+    - var: VGRD
+      level: 10_m_above_ground
+
+NOAA_GEFS:
+  url_base: "https://nomads.ncep.noaa.gov/cgi-bin/"
+  filter_script: "filter_gefs_atmos_0p25s.pl"
+  delay_hours: 6
+  cycle_interval_hours: 6
+  bbox:
+    leftlon: 190
+    rightlon: 240
+    toplat: 75
+    bottomlat: 50
+  dir_template: "/gefs.{date}/{cycle_hour}/atmos/"
+  file_template: "gep{member}.t{cycle_hour}z.pgrb2s.0p25.f{forecast_hour:03d}"
+  members:
+    start: 0
+    end: 30
+    step: 1
+  forecast_hours:
+    start: 0
+    end: 24
+    step: 6
+  variables:
+    - var: APCP
+      level: surface
+    - var: TMP
+      level: 2_m_above_ground
+
+ECCC_NWP:
+  default_model: HRDPS
+  url_template: "{url_base}{day_str}{url_detail}{hour_str}/{lead_time_str}/{filename}"
+  HRDPS:
+    model: HRDPS
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/model_hrdps/continental/2.5km/"
+    timestep: 1
+    interval: 6
+    lead_time: 48
+    delay: 6
+    parameter:
+      - APCP_Sfc
+      - TMP_AGL-2m
+      - SDWE_Sfc
+    first_lead_time:
+      - 1
+      - 0
+      - 0
+    filename_template: "{day_str}T{hour_str}Z_MSC_HRDPS_{parameter}_RLatLon0.0225_PT{lead_time_str}H.grib2"
+  RDPS:
+    model: RDPS
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/model_gem_regional/10km/grib2/"
+    timestep: 1
+    interval: 6
+    lead_time: 84
+    delay: 3
+    parameter:
+      - APCP_SFC_0
+      - TMP_TGL_2
+    first_lead_time:
+      - 1
+      - 0
+    filename_template: "CMC_reg_{parameter}_ps10km_{day_str}{hour_str}_P{lead_time_str}.grib2"
+  GDPS:
+    model: GDPS
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/model_gem_global/15km/grib2/lat_lon/"
+    timestep: 3
+    interval: 12
+    lead_time: 240
+    delay: 6
+    parameter:
+      - APCP_SFC_0
+      - TMP_TGL_2
+    first_lead_time:
+      - 3
+      - 0
+    filename_template: "CMC_glb_{parameter}_latlon.15x.15_{day_str}{hour_str}_P{lead_time_str}.grib2"
+  REPS:
+    model: REPS
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/ensemble/reps/10km/grib2/"
+    timestep: 3
+    interval: 6
+    lead_time: 72
+    delay: 6
+    parameter:
+      - APCP_SFC
+      - TMP_AGL-2m
+    first_lead_time:
+      - 3
+      - 0
+    filename_template: "{day_str}T{hour_str}Z_MSC_REPS_{parameter}_RLatLon0.09x0.09_PT{lead_time_str}H.grib2"
+  GEPS:
+    model: GEPS
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/ensemble/geps/grib2/raw/"
+    timestep: 3
+    interval: 12
+    lead_time: 192
+    delay: 6
+    parameter:
+      - APCP_SFC_0
+      - TMP_TGL_2m
+    first_lead_time:
+      - 3
+      - 0
+    filename_template: "CMC_geps-raw_{parameter}_latlon0p5x0p5_{day_str}{hour_str}_P{lead_time_str}_allmbrs.grib2"
+  GEPS6hr:
+    model: GEPS6hr
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/ensemble/geps/grib2/raw/"
+    timestep: 6
+    interval: 12
+    lead_time: 384
+    delay: 6
+    parameter:
+      - APCP_SFC_0
+      - TMP_TGL_2m
+    first_lead_time:
+      - 6
+      - 0
+    filename_template: "CMC_geps-raw_{parameter}_latlon0p5x0p5_{day_str}{hour_str}_P{lead_time_str}_allmbrs.grib2"
+
+ECCC_PRECIP_GRID:
+  default_model: RDPA
+  url_template: "{url_base}{day_str}{url_detail}{hour_str}/{filename}"
+  HRDPA:
+    model: HRDPA
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/model_hrdpa/2.5km/"
+    parameters: "_SFC_0"
+    num_days_back: 7
+    delay_hours: 18
+    hour_list: ["00", "06", "12", "18"]
+    filename_template: "{day_str}T{hour_str}Z_MSC_HRDPA_APCP-Accum6h_Sfc_RLatLon0.0225_PT0H.grib2"
+  RDPA:
+    model: RDPA
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/model_rdpa/10km/"
+    parameters: "_SFC_0"
+    num_days_back: 7
+    delay_hours: 18
+    hour_list: ["00", "06", "12", "18"]
+    filename_template: "{day_str}T{hour_str}Z_MSC_RDPA_APCP-Accum6h_Sfc_RLatLon0.09_PT0H.grib2"
+
+ECCC_RADAR:
+  url_base: "https://hpfx.collab.science.gc.ca/"
+  username: ""
+  password: ""
+  data_type: composite
+  delay_minutes: 10
+  timestep_minutes: 6
+  search_period_hours: 3
+  url_template: "{url_base}{day_str}/radar/{data_type}/{timestamp}Z_MSC_Radar-Composite_MMHR_1km.tif"
+  filename_template: "{timestamp}Z_MSC_Radar-Composite_MMHR_1km.tif"
+
+SNOWCAST:
+  url_base: "https://hpfx.collab.science.gc.ca/~chm003/tiff/"
+  delay_hours: 6
+  url_template: "{url_base}{filename}"
+  filename_template: "swe-0.01x0.01_{date_str}T230000.tiff"
+
+SNODAS:
+  url_base: "https://www.nohrsc.noaa.gov/products/collaborators/"
+  num_days_back: 28
+  parameters:
+    - zz_ssmv11034tS__T0001TTNATS
+    - zz_ssmv11036tS__T0001TTNATS
+    - zz_ssmv11038wS__A0006TTNATS
+    - zz_ssmv11044bS__T0006TTNATS
+  file_suffixes:
+    - 05HP001
+    - 05HP001
+    - 05HP001
+    - 05HP000
+  url_template: "{url_base}{filename}"
+  filename_template: "{parameter}{date_str}{file_suffix}.grib2"
+
+GLOBSNOW:
+  url_base: "http://www.globsnow.info/swe/nrt/"
+  num_days_back: 3
+  delay_hours: 24
+  url_template: "{url_base}/{year}/data/{filename}"
+  filename_template: "GlobSnow_SWE_L3A_{date_str}_v.2.0.nc.gz"
+
+SNOTEL:
+  url_base: "https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/"
+  station_csv: "SNOTELStations.csv"
+  url_param: "POR_BEGIN,POR_END/WTEQ::value,PREC::value,PRCP::value,SNWD::value,TAVG::value,WSPDV::value,TMAX::value,TMIN::value,SRADV::value"
+  url_template: "{url_base}{url_site}{url_param}"
+  filename_template: "{station_name}.csv"
+
+ERA5:
+  num_days_back: 10
+  delay_days: 3
+  grid: "0.25/0.25"
+  bounding_box:
+    - 60
+    - -120
+    - 49
+    - -110
+  variables_surface_level:
+    - mean_total_precipitation_rate
+    - mean_surface_downward_long_wave_radiation_flux
+    - mean_surface_downward_short_wave_radiation_flux
+    - surface_pressure
+    - 2m_temperature
+    - mean_sea_level_pressure
+    - potential_evaporation
+    - surface_solar_radiation_downwards
+    - toa_incident_solar_radiation
+    - total_precipitation
+  hours:
+    - "00:00"
+    - "01:00"
+    - "02:00"
+    - "03:00"
+    - "04:00"
+    - "05:00"
+    - "06:00"
+    - "07:00"
+    - "08:00"
+    - "09:00"
+    - "10:00"
+    - "11:00"
+    - "12:00"
+    - "13:00"
+    - "14:00"
+    - "15:00"
+    - "16:00"
+    - "17:00"
+    - "18:00"
+    - "19:00"
+    - "20:00"
+    - "21:00"
+    - "22:00"
+    - "23:00"
+
+ERA5_LAND:
+  num_days_back: 10
+  delay_days: 5
+  variables:
+    - snow_cover
+    - snow_depth_water_equivalent
+  bbox:
+    - 60
+    - -120
+    - 49
+    - -110
+  hours:
+    - "00:00"
+    - "01:00"
+    - "02:00"
+    - "03:00"
+    - "04:00"
+    - "05:00"
+    - "06:00"
+    - "07:00"
+    - "08:00"
+    - "09:00"
+    - "10:00"
+    - "11:00"
+    - "12:00"
+    - "13:00"
+    - "14:00"
+    - "15:00"
+    - "16:00"
+    - "17:00"
+    - "18:00"
+    - "19:00"
+    - "20:00"
+    - "21:00"
+    - "22:00"
+    - "23:00"
+
+ECMWF_NWP:
+  default_model: IFS_DET
+  IFS_DET:
+    ecmwf_model: ifs
+    stream: oper
+    use_control: true
+    control_type: fc
+    control_number: null
+    ensemble_type: null
+    ensemble_members: 0
+    ensemble_numbers: []
+    delay: 6
+    lead_time: 12
+    interval: 6
+    timestep: 3
+    first_lead_time: 0
+    url_base: ""
+    source: ecmwf
+    parameters:
+      - tp
+      - 2t
+    clip_to_bbox: true
+    clip_bbox:
+      lon_min: -170.0
+      lon_max: -50.0
+      lat_min: 10.0
+      lat_max: 80.0
+  IFS_ENS:
+    ecmwf_model: ifs
+    stream: enfo
+    use_control: true
+    control_type: cf
+    control_number: null
+    ensemble_type: pf
+    ensemble_members: 50
+    ensemble_numbers: []
+    delay: 6
+    lead_time: 12
+    interval: 6
+    timestep: 3
+    first_lead_time: 0
+    url_base: ""
+    source: aws
+    parameters:
+      - tp
+      - 2t
+    clip_to_bbox: true
+    clip_bbox:
+      lon_min: -170.0
+      lon_max: -50.0
+      lat_min: 10.0
+      lat_max: 80.0
+  AIFS_SINGLE:
+    ecmwf_model: aifs-single
+    stream: oper
+    use_control: true
+    control_type: fc
+    control_number: null
+    ensemble_type: null
+    ensemble_members: 0
+    ensemble_numbers: []
+    delay: 6
+    lead_time: 12
+    interval: 6
+    timestep: 3
+    first_lead_time: 0
+    url_base: ""
+    source: aws
+    parameters:
+      - 2t
+    clip_to_bbox: true
+    clip_bbox:
+      lon_min: -170.0
+      lon_max: -50.0
+      lat_min: 10.0
+      lat_max: 80.0
+  AIFS_ENS:
+    ecmwf_model: aifs-ens
+    stream: enfo
+    use_control: false
+    control_type: fc
+    control_number: 0
+    ensemble_type: fc
+    ensemble_members: 50
+    ensemble_numbers: []
+    delay: 6
+    lead_time: 12
+    interval: 6
+    timestep: 3
+    first_lead_time: 0
+    url_base: ""
+    source: aws
+    parameters:
+      - 2t
+    clip_to_bbox: true
+    clip_bbox:
+      lon_min: -170.0
+      lon_max: -50.0
+      lat_min: 10.0
+      lat_max: 80.0
