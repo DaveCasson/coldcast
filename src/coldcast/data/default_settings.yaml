@@ -14,22 +14,49 @@ ECCC_API:
   url_base: https://api.weather.gc.ca/collections
   limit: 100000
   time_range: ""
-  station_csv: "ECCC_API_Stations.csv"
+  http_timeout_seconds: 120
+  station_csv_hydro: "ECCC_API_Stations_Hydro.csv"
+  station_csv_meteo: "ECCC_API_Stations_Meteo.csv"
   url_template: "{url_base}/{collection}/items?STATION_NUMBER={station}&limit={limit}&datetime={time_range}"
-  filename_template: "{station}_{collection}.json"
+  filename_template: "{station}_{collection}.csv"
+  fews_csv:
+    layout: wide
+    delimiter: ","
+    utf8_bom: false
+    table_datetime_column: DATETIME
+    value_column_names: {}
+    location_column: locationId
+    parameter_column: parameterId
+    datetime_column: dateTime
+    value_column: value
+    unit_column: unit
+    quality_column: qualityFlag
+    parameter_id_map: {}
   collections:
     hydrometric-realtime:
       collection: hydrometric-realtime
+      station_list: hydro
       datetime_column: DATETIME
       download_variables:
         - DISCHARGE
         - LEVEL
     hydrometric-daily-mean:
       collection: hydrometric-daily-mean
+      station_list: hydro
       datetime_column: DATE
       download_variables:
         - DISCHARGE
         - LEVEL
+    swob-realtime:
+      collection: swob-realtime
+      station_list: meteo
+      url_template: "{url_base}/{collection}/items?f=json&msc_id-value={station}&limit={limit}&datetime={time_range}&properties=air_temp,air_temp-uom,air_temp-qa,pcpn_amt_pst1hr,pcpn_amt_pst1hr-uom,pcpn_amt_pst1hr-qa,rnfl_amt_pst1hr,rnfl_amt_pst1hr-uom,date_tm-value,msc_id-value,stn_nam-value"
+      filename_template: "{station}_swob-realtime.csv"
+      datetime_column: date_tm-value
+      download_variables:
+        - air_temp
+        - pcpn_amt_pst1hr
+        - rnfl_amt_pst1hr
 
 NOAA_HRRR:
   url_base: "https://nomads.ncep.noaa.gov/cgi-bin/"

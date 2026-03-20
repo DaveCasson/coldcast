@@ -52,9 +52,14 @@ def _resolve_relative_paths(
 
     for data_source in ("ECCC_API", "SNOTEL"):
         if data_source in settings and isinstance(settings[data_source], dict):
-            station_key = "station_csv"
-            if station_key in settings[data_source]:
-                settings[data_source][station_key] = resolve_path(settings[data_source][station_key])
+            src = settings[data_source]
+            for station_key in (
+                "station_csv",
+                "station_csv_hydro",
+                "station_csv_meteo",
+            ):
+                if station_key in src:
+                    src[station_key] = resolve_path(src[station_key])
 
     return settings
 

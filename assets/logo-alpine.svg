@@ -1,0 +1,5 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Alpine logo">
+  <rect width="120" height="120" rx="18" fill="#112b1f"/>
+  <path d="M18 92l28-44 20 32 12-18 24 30H18z" fill="#d9f3e3"/>
+  <path d="M46 48l10-16 8 13" stroke="#112b1f" stroke-width="4" fill="none"/>
+</svg>

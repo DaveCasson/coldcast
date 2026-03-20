@@ -1,40 +1,32 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "coldcast"
-version = "0.1.0"
+version = "0.0.1"
 description = "Weather and hydrologic data downloads"
 readme = "README.md"
-requires-python = ">=3.9"
-license = { file = "LICENSE" }
-authors = [{ name = "Coldcast Contributors" }]
-dependencies = [
-  "pandas>=2.0",
-  "pyyaml>=6.0",
-  "requests>=2.31",
-  "cdsapi>=0.7",
-  "ecmwf-opendata>=0.3",
-  "netCDF4>=1.6",
-  "xarray>=2023.1",
-]
+license = "MIT"
+authors = ["Dave Casson <davecasson@swftresponse.ca>"]
+packages = [{ include = "coldcast", from = "src" }]
+include = ["src/coldcast/data/*.yaml", "src/coldcast/data/*.csv"]
 
-[project.optional-dependencies]
-dev = ["pytest>=7.4"]
+[tool.poetry.dependencies]
+python = ">=3.9"
+pandas = ">=2.0"
+pyyaml = ">=6.0"
+requests = ">=2.31"
+cdsapi = ">=0.7"
+ecmwf-opendata = ">=0.3"
+netCDF4 = ">=1.6"
+xarray = ">=2023.1"
 
-[project.scripts]
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.4"
+
+[tool.poetry.scripts]
 coldcast = "coldcast.cli:main"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-include-package-data = true
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-coldcast = ["data/*.yaml", "data/*.csv"]
 
 [tool.pytest.ini_options]
 markers = [

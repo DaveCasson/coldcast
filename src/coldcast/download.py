@@ -19,6 +19,7 @@ class DownloadRequest:
     filename: str
     headers: Optional[dict] = None
     auth: Optional[Tuple[str, str]] = None
+    eccc_collection_key: Optional[str] = None
 
 
 def _download_one(request: DownloadRequest, output_dir: Path, timeout: int = 60) -> bool:

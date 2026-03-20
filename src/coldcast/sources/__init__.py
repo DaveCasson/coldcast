@@ -47,4 +47,5 @@ DOWNLOAD_SOURCES = {
     "ERA5": era5_download,
     "ERA5_LAND": era5_download,
     "ECMWF_NWP": ecmwf_download,
+    "ECCC_API": eccc_api.download,
 }

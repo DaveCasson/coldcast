@@ -1,0 +1,6 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Boreal logo">
+  <rect width="120" height="120" rx="18" fill="#1b1b2b"/>
+  <path d="M60 26l18 28H42l18-28z" fill="#cfe6ff"/>
+  <path d="M60 40l26 42H34l26-42z" fill="#cfe6ff"/>
+  <rect x="56" y="82" width="8" height="12" fill="#cfe6ff"/>
+</svg>
