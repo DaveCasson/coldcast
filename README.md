@@ -37,7 +37,7 @@ coldcast download eccc_precip_grid --model RDPA --settings ./settings.yaml
 | `ECCC_NWP`, `ECCC_PRECIP_GRID`, `ECCC_RADAR`, `SNOWCAST`, `GLOBSNOW`, `SNODAS`, `ECCC_API`, `SNOTEL` | Environment Canada grib/radar/csv downloads. | `coldcast download eccc_nwp --model RDPS` |
 | `NOAA_HRRR`, `NOAA_GFS`, `NOAA_GEFS` | NOMADS Grib Filter subsetting with bbox/variables/members. | `coldcast download noaa_hrrr --dry-run` |
 | `ERA5`, `ERA5_LAND` | CDS netCDF retrievals via `cdsapi`. | `coldcast download era5 --run-info-netcdf ./runinfo.nc` |
-| `ECMWF_NWP` | ECMWF open-data deterministic/ensemble downloads (IFS/AIFS). | `coldcast download ecmwf_nwp --model IFS_ENS` |
+| `ECMWF_NWP` | ECMWF open-data deterministic/ensemble downloads (IFS/AIFS). | `coldcast download ecmwf_nwp --model IFS_ENS --run-info-netcdf ./runinfo.nc` |
 
 ## CLI usage
 
@@ -53,7 +53,7 @@ Common options:
 - `--model`: model key for multi-model sources (ECCC_NWP, ECMWF_NWP).
 - `--dry-run`: print URLs/jobs without downloading.
 - `--run-info-file`: FEWS XML run info.
-- `--run-info-netcdf`: netCDF time override.
+- `--run-info-netcdf`: FEWS runinfo netCDF; uses variable `time0` as reference time when present (see Run-info overrides).
 
 ## Examples
 
@@ -64,7 +64,7 @@ coldcast download noaa_gefs --dry-run
 coldcast download eccc_precip_grid --model RDPA --output-dir ./work
 coldcast download snotel --dry-run
 coldcast download era5 --run-info-netcdf ./runinfo.nc
-coldcast download ecmwf_nwp --model AIFS_ENS --max-threads 4
+coldcast download ecmwf_nwp --model AIFS_ENS --max-threads 4 --run-info-netcdf ./runinfo.nc
 ```
 
 ## Configuration
@@ -75,6 +75,7 @@ Copy `src/coldcast/data/default_settings.yaml` and adjust:
 - Range definitions (`forecast_hours`, `members`) accept `start/end/step`.
 - NOAA blocks define bbox + variable/level pairs; GEFS members expand to `gepXX`.
 - ECMWF & ERA5 sections mirror the legacy defaults for compatibility.
+- **ECMWF_NWP** always requests the **00 UTC** model cycle (06/12/18 UTC are not used); the date is the calendar day of that 00z instant after applying delay and any reference_time / latest() wall-clock.
 
 ### `ECCC_API` (GeoMet hydrometric + SWOB)
 
@@ -115,10 +116,10 @@ coldcast download eccc_precip_grid --run-info-file ../runinfo.xml
 coldcast download era5 --run-info-netcdf ./runinfo.nc
 ```
 
-The netCDF reader uses xarray to locate the first datetime variable in the file.
+For Delft-FEWS `runinfo.nc`, the reader uses the **`time0`** variable (CF time units). If `time0` is absent, it falls back to a variable named `time` / `TIME` / `Time`, then the first `datetime64` variable.
 
 ## Testing
 
-- `pytest tests/test_urls.py` verifies URL building; `pytest tests/test_eccc_api.py` covers hydro vs meteo `ECCC_API` routing. Network checks are opt-in:
+- `pytest tests/test_urls.py` verifies URL building; `pytest tests/test_eccc_api.py` covers hydro vs meteo `ECCC_API` routing; `pytest tests/test_run_info_netcdf.py` covers FEWS `runinfo.nc` / `time0` parsing. Network checks are opt-in:
   `COLDCAST_RUN_NETWORK_TESTS=1 pytest -m network`.
 - `pytest tests/test_api_clients.py -m api_client` mocks `cdsapi` and ECMWF clients.

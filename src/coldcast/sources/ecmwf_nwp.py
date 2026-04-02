@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-from __future__ import annotations
-
+import datetime as dt
 import logging
 import os
 import threading
-import datetime as dt
-import re
 
 from typing import Dict, List, Optional, Tuple
 
-import netCDF4 as nc
-import xarray as xr
 from ecmwf.opendata import Client
 
 from ..download import DownloadRequest
 from ..time_utils import get_reference_time
 
 logger = logging.getLogger("coldcast.ecmwf")
+
+
+def _cycle_00z_utc(ref_wall: dt.datetime) -> Tuple[dt.date, int]:
+    """Use only the 00 UTC model cycle (not 06/12/18)."""
+    snapped = ref_wall.replace(hour=0, minute=0, second=0, microsecond=0)
+    return snapped.date(), 0
 
 
 def _ecmwf_retrieve_thread(
@@ -63,7 +64,7 @@ def download(settings: Dict[str, object], data_source: str) -> None:
     output_dir = settings["output_dir"]
     max_threads = settings.get("max_num_threads", 4)
 
-    delay = int(cfg["delay"])
+    delay_hours = int(cfg["delay"])
     lead_time = int(cfg["lead_time"])
     interval = int(cfg["interval"])
     timestep = int(cfg["timestep"])
@@ -98,9 +99,14 @@ def download(settings: Dict[str, object], data_source: str) -> None:
     elif ensemble_type:
         latest_kwargs["type"] = ensemble_type
 
-    latest = client.latest(**latest_kwargs) if latest_kwargs else client.latest()
-    run_date = latest.date()
-    run_hour = latest.hour
+    ref = settings.get("reference_time")
+    if ref is not None:
+        ref_wall = get_reference_time(delay_hours * 3600, base_time=ref)
+        run_date, run_hour = _cycle_00z_utc(ref_wall)
+    else:
+        latest = client.latest(**latest_kwargs) if latest_kwargs else client.latest()
+        wall = dt.datetime.combine(latest.date(), dt.time(latest.hour, 0))
+        run_date, run_hour = _cycle_00z_utc(wall)
 
     lead_times = [
         str(lt) for lt in range(first_lead_time, lead_time + timestep, timestep)

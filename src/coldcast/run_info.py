@@ -52,6 +52,55 @@ def apply_run_info(settings: Dict[str, Any]) -> Dict[str, Any]:
     return settings
 
 
+def _select_runinfo_time_variable(ds: Any) -> Any:
+    """Prefer Delft-FEWS runinfo ``time0``, then CF ``time``, then first datetime64 variable."""
+    if "time0" in ds.variables:
+        return ds["time0"]
+    for candidate in ("time", "TIME", "Time"):
+        if candidate in ds.variables:
+            return ds[candidate]
+    for name in ds.variables:
+        data = ds[name]
+        if np.issubdtype(data.dtype, np.datetime64):
+            return data
+    return None
+
+
+def _scalar_time_to_datetime(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, np.datetime64):
+        ts = np.datetime_as_string(value, unit="s")
+        return datetime.fromisoformat(str(ts))
+
+    import pandas as pd
+
+    ts = pd.Timestamp(value)
+    if pd.isna(ts):
+        raise ValueError("Invalid or missing time value in runinfo netCDF.")
+    if ts.tzinfo is not None:
+        ts = ts.tz_convert("UTC").tz_localize(None)
+    return ts.to_pydatetime()
+
+
+def _first_instant_from_time_var(da: Any) -> datetime:
+    import xarray as xr
+
+    arr = np.asarray(da.values)
+    if arr.size == 0:
+        raise ValueError("Empty time variable in runinfo netCDF.")
+
+    scalar = arr.flat[0]
+    if isinstance(scalar, (float, np.floating, int, np.integer)) and da.attrs.get("units"):
+        decoded = xr.decode_cf(xr.Dataset({"t": da}))["t"]
+        arr = np.asarray(decoded.values)
+        if arr.size == 0:
+            raise ValueError("Decoded time variable empty in runinfo netCDF.")
+        scalar = arr.flat[0]
+
+    return _scalar_time_to_datetime(scalar)
+
+
 def read_netcdf_reference_time(netcdf_path: Path) -> datetime:
     try:
         import xarray as xr
@@ -59,28 +108,10 @@ def read_netcdf_reference_time(netcdf_path: Path) -> datetime:
         raise RuntimeError("Run info netCDF requires xarray (install coldcast[ecmwf]).") from exc
 
     ds = xr.open_dataset(netcdf_path, decode_times=True)
-    time_var = None
-    for candidate in ("time", "TIME", "Time"):
-        if candidate in ds.variables:
-            time_var = ds[candidate]
-            break
-
-    if time_var is None:
-        for var in ds.variables:
-            data = ds[var]
-            if np.issubdtype(data.dtype, np.datetime64):
-                time_var = data
-                break
-
-    if time_var is None or len(time_var.values) == 0:
+    try:
+        time_var = _select_runinfo_time_variable(ds)
+        if time_var is None:
+            raise ValueError("No valid time variable found in runinfo netCDF.")
+        return _first_instant_from_time_var(time_var)
+    finally:
         ds.close()
-        raise ValueError("No valid time variable found in runinfo netCDF.")
-
-    value = time_var.values[0]
-    ds.close()
-
-    if isinstance(value, np.datetime64):
-        ts = np.datetime_as_string(value, unit="s")
-        return datetime.fromisoformat(ts)
-
-    return value if isinstance(value, datetime) else datetime.fromtimestamp(value)

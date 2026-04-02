@@ -45,6 +45,25 @@ def _resolve_model(settings: Dict[str, object], data_source: str, model: Optiona
     return source_cfg.get("default_model")
 
 
+def build_arg_parser() -> argparse.ArgumentParser:
+    """Return the root CLI parser (used by sphinx-argparse in the docs)."""
+    parser = argparse.ArgumentParser(prog="coldcast", description="Coldcast data downloader")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    download_parser = subparsers.add_parser("download", help="Download data for a source")
+    download_subparsers = download_parser.add_subparsers(dest="data_source", required=True)
+
+    for source in SOURCE_CHOICES:
+        source_parser = download_subparsers.add_parser(
+            source.lower(),
+            help=f"Download {source} data",
+            aliases=[source.upper()],
+        )
+        _add_common_args(source_parser)
+
+    return parser
+
+
 def _run_source(args: argparse.Namespace, data_source: str) -> int:
     bundle = load_settings(
         args.settings,
@@ -76,21 +95,7 @@ def _run_source(args: argparse.Namespace, data_source: str) -> int:
 
 def main() -> None:
     configure_logging()
-    parser = argparse.ArgumentParser(prog="coldcast", description="Coldcast data downloader")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    download_parser = subparsers.add_parser("download", help="Download data for a source")
-    download_subparsers = download_parser.add_subparsers(dest="data_source", required=True)
-
-    for source in SOURCE_CHOICES:
-        source_parser = download_subparsers.add_parser(
-            source.lower(),
-            help=f"Download {source} data",
-            aliases=[source.upper()],
-        )
-        _add_common_args(source_parser)
-
-    args = parser.parse_args()
+    args = build_arg_parser().parse_args()
 
     if args.command == "download":
         data_source = args.data_source.upper()

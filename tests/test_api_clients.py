@@ -83,3 +83,65 @@ def test_ecmwf_nwp_download_uses_client(monkeypatch):
     monkeypatch.setattr(ecmwf_nwp, "Client", factory)
     ecmwf_nwp.download(settings, "ECMWF_NWP")
     assert retrieved, "No retrieve call was made to Client"
+
+
+@pytest.mark.api_client
+def test_ecmwf_nwp_download_uses_reference_time(monkeypatch):
+    bundle = load_settings()
+    settings = bundle.settings
+    settings["reference_time"] = dt.datetime(2025, 6, 15, 18, 0, 0)
+
+    retrieved = []
+    latest_calls = []
+
+    class DummyLatest:
+        def date(self):
+            return dt.date(1999, 1, 1)
+
+        def hour(self):
+            return 0
+
+    class DummyClient:
+        def latest(self, **kwargs):
+            latest_calls.append(kwargs)
+            return DummyLatest()
+
+        def retrieve(self, **kwargs):
+            retrieved.append(kwargs)
+
+    monkeypatch.setattr(ecmwf_nwp, "Client", lambda *a, **k: DummyClient())
+    ecmwf_nwp.download(settings, "ECMWF_NWP")
+
+    assert not latest_calls, "client.latest() should not run when reference_time is set"
+    assert retrieved, "No retrieve call was made to Client"
+    assert retrieved[0]["date"] == dt.date(2025, 6, 15)
+    assert retrieved[0]["time"] == 0
+
+@pytest.mark.api_client
+def test_ecmwf_nwp_snaps_latest_cycle_to_00z(monkeypatch):
+    """ECMWF downloader always requests the 00 UTC cycle, not 06/12/18."""
+    bundle = load_settings()
+    settings = bundle.settings
+    retrieved = []
+
+    class DummyLatest:
+        def __init__(self):
+            self._date = dt.date(2025, 3, 10)
+            self.hour = 12
+
+        def date(self):
+            return self._date
+
+    class DummyClient:
+        def latest(self, **kwargs):
+            return DummyLatest()
+
+        def retrieve(self, **kwargs):
+            retrieved.append(kwargs)
+
+    monkeypatch.setattr(ecmwf_nwp, "Client", lambda *a, **k: DummyClient())
+    ecmwf_nwp.download(settings, "ECMWF_NWP")
+    assert retrieved, "No retrieve call was made to Client"
+    assert retrieved[0]["date"] == dt.date(2025, 3, 10)
+    assert retrieved[0]["time"] == 0
+
