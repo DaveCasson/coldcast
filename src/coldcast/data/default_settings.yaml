@@ -12,7 +12,14 @@ wgrib2_path: "./bin/wgrib2.exe"
 
 ECCC_API:
   url_base: https://api.weather.gc.ca/collections
-  limit: 100000
+  # Per-request page size for /items (GeoMet returns at most 10000 features per response).
+  limit: 10000
+  # Follow OGC ``rel=next`` until all features for each station are retrieved.
+  fetch_all_pages: true
+  # Safety cap on HTTP round-trips per station (10000 pages ≈ 100M rows).
+  max_pagination_pages: 5000
+  # Newest timestamps first in exported CSV (wide and long).
+  sort_output_datetime_descending: true
   time_range: ""
   http_timeout_seconds: 120
   station_csv_hydro: "ECCC_API_Stations_Hydro.csv"
@@ -57,6 +64,62 @@ ECCC_API:
         - air_temp
         - pcpn_amt_pst1hr
         - rnfl_amt_pst1hr
+    climate-daily:
+      collection: climate-daily
+      station_list: meteo
+      station_column: CLIMATE_IDENTIFIER
+      url_template: "{url_base}/{collection}/items?f=json&CLIMATE_IDENTIFIER={station}&limit={limit}&datetime={time_range}"
+      filename_template: "{station}_climate-daily.csv"
+      datetime_column: LOCAL_DATE
+      download_variables:
+        - MAX_TEMPERATURE
+        - MIN_TEMPERATURE
+        - MEAN_TEMPERATURE
+        - TOTAL_PRECIPITATION
+    climate-hourly:
+      collection: climate-hourly
+      station_list: meteo
+      station_column: CLIMATE_IDENTIFIER
+      url_template: "{url_base}/{collection}/items?f=json&CLIMATE_IDENTIFIER={station}&limit={limit}&datetime={time_range}"
+      filename_template: "{station}_climate-hourly.csv"
+      datetime_column: LOCAL_DATE
+      download_variables:
+        - TEMP
+        - DEW_POINT_TEMP
+        - RELATIVE_HUMIDITY
+        - PRECIP_AMOUNT
+        - STATION_PRESSURE
+        - WIND_DIRECTION
+        - WIND_SPEED
+
+ALBERTA_API:
+  url_base: "https://rivers.alberta.ca/WiskiLiveDataService/Download"
+  # "auto" = same calendar month/day as today, default_years_back years earlier (see alberta_api._resolve_from_date).
+  from_date: "auto"
+  default_years_back: 2
+  to_date: "latest"
+  mapping_csv: "ALBERTA_API_Stations.csv"
+  remote_filename_suffix: "C.Corrected-Sensor"
+  zip: true
+  json: true
+  # Write the HTTP body to output_dir as <Station>_<Parameter>.zip (or .download) before parsing.
+  save_raw_response: true
+  http_timeout_seconds: 120
+  fews_csv:
+    layout: wide
+    delimiter: ","
+    utf8_bom: false
+    table_datetime_column: DATETIME
+    value_column_names: {}
+    location_column: locationId
+    parameter_column: parameterId
+    datetime_column: dateTime
+    value_column: value
+    unit_column: unit
+    quality_column: qualityFlag
+    parameter_id_map: {}
+    default_unit: ""
+    default_quality_flag: ""
 
 NOAA_HRRR:
   url_base: "https://nomads.ncep.noaa.gov/cgi-bin/"
@@ -251,7 +314,7 @@ ECCC_PRECIP_GRID:
     url_detail: "/WXO-DD/model_hrdpa/2.5km/"
     parameters: "_SFC_0"
     num_days_back: 7
-    delay_hours: 18
+    delay_hours: 6
     hour_list: ["00", "06", "12", "18"]
     filename_template: "{day_str}T{hour_str}Z_MSC_HRDPA_APCP-Accum6h_Sfc_RLatLon0.0225_PT0H.grib2"
   RDPA:
@@ -260,9 +323,33 @@ ECCC_PRECIP_GRID:
     url_detail: "/WXO-DD/model_rdpa/10km/"
     parameters: "_SFC_0"
     num_days_back: 7
-    delay_hours: 18
+    delay_hours: 6
     hour_list: ["00", "06", "12", "18"]
     filename_template: "{day_str}T{hour_str}Z_MSC_RDPA_APCP-Accum6h_Sfc_RLatLon0.09_PT0H.grib2"
+  HREPA:
+    model: HREPA
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/model_hrepa/2.5km/"
+    num_days_back: 1
+    delay_hours: 6
+    hour_list: ["00", "06", "12", "18"]
+    filename_template: "{day_str}T{hour_str}Z_MSC_HREPA_Precip-Accum06h_Sfc_RLatLon0.0225_PT0H.nc"
+  HREPA_PCT25:
+    model: HREPA_PCT25
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/model_hrepa/2.5km/"
+    num_days_back: 7
+    delay_hours: 18
+    hour_list: ["00", "06", "12", "18"]
+    filename_template: "{day_str}T{hour_str}Z_MSC_HREPA_Precip-Accum06h-Pct25_Sfc_RLatLon0.0225_PT0H.nc"
+  HREPA_PCT75:
+    model: HREPA_PCT75
+    url_base: "https://dd.weather.gc.ca/"
+    url_detail: "/WXO-DD/model_hrepa/2.5km/"
+    num_days_back: 7
+    delay_hours: 18
+    hour_list: ["00", "06", "12", "18"]
+    filename_template: "{day_str}T{hour_str}Z_MSC_HREPA_Precip-Accum06h-Pct75_Sfc_RLatLon0.0225_PT0H.nc"
 
 ECCC_RADAR:
   url_base: "https://hpfx.collab.science.gc.ca/"

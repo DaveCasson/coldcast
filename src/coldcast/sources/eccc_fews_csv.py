@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple
 
+import pandas as pd
+
 
 def _fews_column_names(fews_csv: Mapping[str, object]) -> Dict[str, str]:
     return {
@@ -61,6 +63,7 @@ def geojson_features_to_fews_rows(
     *,
     fews_csv_cfg: Mapping[str, object],
     parameter_id_map: Mapping[str, str],
+    sort_datetime_descending: bool = False,
 ) -> List[Dict[str, str]]:
     """One row per (location, time, parameter) for Delft-FEWS delimited / general CSV import."""
     station_list = str(collection_cfg.get("station_list", "hydro"))
@@ -104,8 +107,20 @@ def geojson_features_to_fews_rows(
                 }
             )
 
-    sort_keys = (names["location"], names["datetime"], names["parameter"])
-    rows.sort(key=lambda r: tuple(r.get(k, "") for k in sort_keys))
+    loc_k, dt_k, par_k = names["location"], names["datetime"], names["parameter"]
+
+    def _long_sort_key(r: Dict[str, str]) -> tuple:
+        loc = r.get(loc_k, "")
+        par = r.get(par_k, "")
+        ts = pd.to_datetime(r.get(dt_k, ""), errors="coerce")
+        if pd.isna(ts):
+            return (loc, par, 1, 0.0)
+        t = ts.timestamp()
+        if sort_datetime_descending:
+            return (loc, par, 0, -t)
+        return (loc, par, 0, t)
+
+    rows.sort(key=_long_sort_key)
     return rows
 
 
@@ -173,6 +188,7 @@ def geojson_features_to_fews_wide_rows(
     *,
     fews_csv_cfg: Mapping[str, object],
     value_column_names: Mapping[str, str],
+    sort_datetime_descending: bool = False,
 ) -> Tuple[List[Dict[str, str]], List[str]]:
     """
     One row per observation time; columns match FEWS table dateTimeColumn + valueColumn names.
@@ -202,7 +218,17 @@ def geojson_features_to_fews_wide_rows(
             row[header] = "" if num is None else _format_numeric(num)
         rows.append(row)
 
-    rows.sort(key=lambda r: r.get(dt_header, ""))
+    def _wide_sort_key(r: Dict[str, str]) -> tuple:
+        raw = r.get(dt_header, "")
+        ts = pd.to_datetime(raw, errors="coerce")
+        if pd.isna(ts):
+            return (1, raw)
+        t = ts.timestamp()
+        if sort_datetime_descending:
+            return (0, -t)
+        return (0, t)
+
+    rows.sort(key=_wide_sort_key)
     return rows, fieldnames
 
 

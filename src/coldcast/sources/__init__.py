@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Dict, Optional, List
 
 from . import (
+    alberta_api,
     gfs,
     gefs,
     hrrr,
@@ -29,6 +30,7 @@ SOURCES: Dict[str, BuildFn] = {
     "NOAA_HRRR": hrrr.build_requests,
     "NOAA_GFS": gfs.build_requests,
     "NOAA_GEFS": gefs.build_requests,
+    "ALBERTA_API": alberta_api.build_requests,
     "ECCC_API": eccc_api.build_requests,
     "ECCC_NWP": eccc_nwp.build_requests,
     "ECCC_PRECIP_GRID": eccc_precip_grid.build_requests,
@@ -48,4 +50,5 @@ DOWNLOAD_SOURCES = {
     "ERA5_LAND": era5_download,
     "ECMWF_NWP": ecmwf_download,
     "ECCC_API": eccc_api.download,
+    "ALBERTA_API": alberta_api.download,
 }

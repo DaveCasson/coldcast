@@ -13,6 +13,7 @@ Each page summarizes the upstream service, configuration block, and implementati
    eccc_precip_grid
    eccc_radar
    eccc_api
+   alberta_api
    snotel
    snowcast
    globsnow

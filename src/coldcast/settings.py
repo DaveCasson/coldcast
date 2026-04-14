@@ -61,6 +61,11 @@ def _resolve_relative_paths(
                 if station_key in src:
                     src[station_key] = resolve_path(src[station_key])
 
+    if "ALBERTA_API" in settings and isinstance(settings["ALBERTA_API"], dict):
+        alberta = settings["ALBERTA_API"]
+        if "mapping_csv" in alberta:
+            alberta["mapping_csv"] = resolve_path(alberta["mapping_csv"])
+
     return settings
 
 

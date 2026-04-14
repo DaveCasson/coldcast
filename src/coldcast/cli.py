@@ -14,6 +14,7 @@ SOURCE_CHOICES = [
     "NOAA_HRRR",
     "NOAA_GFS",
     "NOAA_GEFS",
+    "ALBERTA_API",
     "ECCC_NWP",
     "ECCC_PRECIP_GRID",
     "ECCC_RADAR",
@@ -60,6 +61,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
             aliases=[source.upper()],
         )
         _add_common_args(source_parser)
+        if source in {"ECCC_API", "ALBERTA_API"}:
+            source_parser.add_argument(
+                "--stations-csv",
+                metavar="PATH",
+                help=(
+                    "Station mapping CSV override. "
+                    "ECCC_API: station_csv_hydro / station_csv_meteo; "
+                    "ALBERTA_API: mapping_csv"
+                ),
+            )
 
     return parser
 
@@ -76,7 +87,13 @@ def _run_source(args: argparse.Namespace, data_source: str) -> int:
     model = _resolve_model(settings, data_source, args.model)
 
     build_fn = SOURCES[data_source]
-    requests_list = build_fn(settings, model=model) if model else build_fn(settings)
+    if data_source in {"ECCC_API", "ALBERTA_API"}:
+        stations_csv = getattr(args, "stations_csv", None)
+        requests_list = build_fn(settings, model=model, stations_csv=stations_csv)
+    elif model:
+        requests_list = build_fn(settings, model=model)
+    else:
+        requests_list = build_fn(settings)
 
     if args.dry_run:
         for req in requests_list:
@@ -84,7 +101,15 @@ def _run_source(args: argparse.Namespace, data_source: str) -> int:
         return 0
 
     if data_source in DOWNLOAD_SOURCES:
-        DOWNLOAD_SOURCES[data_source](settings, data_source=data_source)
+        if data_source in {"ECCC_API", "ALBERTA_API"}:
+            DOWNLOAD_SOURCES[data_source](
+                settings,
+                data_source=data_source,
+                model=model,
+                stations_csv=getattr(args, "stations_csv", None),
+            )
+        else:
+            DOWNLOAD_SOURCES[data_source](settings, data_source=data_source)
         return 0
 
     max_threads = int(settings.get("max_num_threads", 4))

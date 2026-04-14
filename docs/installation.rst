@@ -17,6 +17,36 @@ From the repository root:
 
 This installs the ``coldcast`` package from ``src/`` and registers the ``coldcast`` console script.
 
+Running the CLI on Windows
+--------------------------
+
+After ``pip install -e .``, do **not** run:
+
+.. code-block:: powershell
+
+   python.exe coldcast
+
+That form asks Python to open a local file named ``coldcast`` and will fail with
+``can't open file ...`` when no such file exists.
+
+Use either the generated console script:
+
+.. code-block:: powershell
+
+   C:\GitHub\OpenFEWS\Modules\Python311\Scripts\coldcast.exe --help
+   C:\GitHub\OpenFEWS\Modules\Python311\Scripts\coldcast.exe download noaa_hrrr --dry-run
+
+or run the CLI module directly:
+
+.. code-block:: powershell
+
+   C:\GitHub\OpenFEWS\Modules\Python311\python.exe -m coldcast.cli --help
+   C:\GitHub\OpenFEWS\Modules\Python311\python.exe -m coldcast.cli download noaa_hrrr --dry-run
+
+If ``coldcast.exe`` is reported as installed but not found, add your Python
+``Scripts`` directory to ``PATH`` (for example,
+``C:\GitHub\OpenFEWS\Modules\Python311\Scripts``).
+
 Using Poetry
 ------------
 
@@ -54,3 +84,6 @@ If your ``ECCC_RADAR`` settings include ``username`` / ``password``, those are p
 
 **NOAA SNODAS**  
 URLs are built from the collaborator product layout documented by NOAA; no Coldcast-specific API key is required.
+
+**Alberta WISKI (ALBERTA_API)**  
+The default upstream endpoint is public (no API key). Configure a mapping CSV with ``Station``, ``Parameter``, and ``TsID`` columns in your ``ALBERTA_API.mapping_csv`` setting (or override with ``--stations-csv``).

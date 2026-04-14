@@ -28,13 +28,14 @@ Use a custom settings file:
 
 ```bash
 coldcast download eccc_precip_grid --model RDPA --settings ./settings.yaml
+coldcast download eccc_precip_grid --model HREPA --dry-run
 ```
 
 ## Product coverage
 
 | Source | Description | CLI | 
 | --- | --- | --- |
-| `ECCC_NWP`, `ECCC_PRECIP_GRID`, `ECCC_RADAR`, `SNOWCAST`, `GLOBSNOW`, `SNODAS`, `ECCC_API`, `SNOTEL` | Environment Canada grib/radar/csv downloads. | `coldcast download eccc_nwp --model RDPS` |
+| `ECCC_NWP`, `ECCC_PRECIP_GRID`, `ECCC_RADAR`, `SNOWCAST`, `GLOBSNOW`, `SNODAS`, `ECCC_API`, `ALBERTA_API`, `SNOTEL` | Environment Canada / Alberta grib/radar/csv downloads. | `coldcast download eccc_nwp --model RDPS` |
 | `NOAA_HRRR`, `NOAA_GFS`, `NOAA_GEFS` | NOMADS Grib Filter subsetting with bbox/variables/members. | `coldcast download noaa_hrrr --dry-run` |
 | `ERA5`, `ERA5_LAND` | CDS netCDF retrievals via `cdsapi`. | `coldcast download era5 --run-info-netcdf ./runinfo.nc` |
 | `ECMWF_NWP` | ECMWF open-data deterministic/ensemble downloads (IFS/AIFS). | `coldcast download ecmwf_nwp --model IFS_ENS --run-info-netcdf ./runinfo.nc` |
@@ -48,7 +49,7 @@ coldcast download <source> [options]
 Common options:
 
 - `--settings`: YAML config (defaults to `src/coldcast/data/default_settings.yaml`).
-- `--output-dir`: download destination.
+- `--output-dir`: download destination. If the directory does not exist, Coldcast creates it automatically.
 - `--max-threads`: concurrency limit for HTTP downloads.
 - `--model`: model key for multi-model sources (ECCC_NWP, ECMWF_NWP).
 - `--dry-run`: print URLs/jobs without downloading.
@@ -62,6 +63,9 @@ coldcast download noaa_hrrr --dry-run
 coldcast download noaa_gfs --dry-run
 coldcast download noaa_gefs --dry-run
 coldcast download eccc_precip_grid --model RDPA --output-dir ./work
+coldcast download eccc_precip_grid --model HREPA --output-dir ./work
+coldcast download eccc_api --model swob-realtime --stations-csv ./my_stations.csv --output-dir ./work
+coldcast download alberta_api --stations-csv ./ALBERTA_API_Stations.csv --output-dir ./work
 coldcast download snotel --dry-run
 coldcast download era5 --run-info-netcdf ./runinfo.nc
 coldcast download ecmwf_nwp --model AIFS_ENS --max-threads 4 --run-info-netcdf ./runinfo.nc
@@ -86,6 +90,10 @@ Hydrological and meteorological station lists are separate:
 
 Each entry under `ECCC_API.collections` must set `station_list: hydro` or `station_list: meteo`. Collections may override `url_template` / `filename_template` (e.g. SWOB uses `properties=` to limit JSON fields).
 
+GeoMet caps each `/items` response at 10000 features. The bundled `ECCC_API` settings use `limit: 10000`, `fetch_all_pages: true`, and `sort_output_datetime_descending: true` for **all** collections—hydrometric (`hydrometric-realtime`, `hydrometric-daily-mean`, …) and meteo—so long station histories are merged across pages and CSV rows list newest times first.
+
+On the CLI, `--model <collection>` runs only that collection (collection key or GeoMet `collection` id, case-insensitive). `--stations-csv PATH` uses that file instead of the configured station CSVs for the run; hydrometric and meteo collections both read station IDs from this path when they are included, so the file must contain the column each collection uses (`ID`, `MSC_ID`, or `station_column`).
+
 **Delft-FEWS CSV output:** `coldcast download eccc_api` (without `--dry-run`) downloads GeoJSON from GeoMet, then writes **wide** CSV by default: one column `DATETIME` (name from `fews_csv.table_datetime_column`) plus one column per variable in `download_variables`, matching FEWS `dateTimeColumn` / `valueColumn` **name** attributes, e.g.
 
 ```xml
@@ -103,9 +111,35 @@ If GeoMet returns no features, or no rows can be built (e.g. missing timestamps)
 ```bash
 coldcast download eccc_api --dry-run
 coldcast download eccc_api --output-dir ./work
+coldcast download eccc_api --model hydrometric-realtime --stations-csv ./stations.csv --dry-run
+coldcast download eccc_api --model climate-daily --stations-csv ./HindcastMeteoStations.csv --dry-run
 ```
 
 Legacy configs may keep `station_csv` instead of `station_csv_hydro` for hydrological stations only.
+
+### `ALBERTA_API` (WISKI station download)
+
+`ALBERTA_API` downloads station time series from Alberta WISKI `Download` endpoint, using a mapping CSV with columns:
+
+- `Station` (e.g. `05BJ805`)
+- `Parameter` (e.g. `TA`, `PR`)
+- `TsID` (e.g. `160424042`)
+
+Behavior:
+
+- Requests are built like:
+  `https://rivers.alberta.ca/WiskiLiveDataService/Download?tsId=<TsID>&from=<from_date>&to=<to_date>&filename=<Station>_<Parameter>_C.Corrected-Sensor.csv&zip=true&json=true`
+- `to_date: latest` resolves to today.
+- Default `from_date: auto` with `default_years_back: 2` uses the same calendar month/day as today, two years earlier, through today. Override with a fixed `from_date: "YYYY-MM-DD"` if needed.
+- Each successful HTTP response is saved to the output directory as `<Station>_<Parameter>.zip` when the body is a ZIP (set `save_raw_response: false` to disable). FEWS CSV is written separately as `<Station>_<Parameter>.csv` when parsing succeeds.
+- `fews_csv.layout` supports `wide` (default) and `long`.
+- `PR` values are rates (per hour). Each row is the amount since the previous sample: `rate × Δt` (hours), not a cumulative total from the start of the series.
+- `PC` values are treated as a cumulative counter (e.g. tipping bucket). Differences between successive readings are summed into each UTC clock hour so the CSV has one row per hour.
+
+```bash
+coldcast download alberta_api --dry-run
+coldcast download alberta_api --stations-csv ./ALBERTA_API_Stations.csv --output-dir ./work
+```
 
 ## Run-info overrides
 

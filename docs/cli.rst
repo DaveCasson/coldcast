@@ -16,7 +16,10 @@ The following reference is generated from the live :mod:`argparse` definition in
    :func: build_arg_parser
    :prog: coldcast
 
+When ``--output-dir`` is provided and the directory does not exist, Coldcast
+creates it automatically.
+
 Dry-run
 -------
 
-With ``--dry-run``, Coldcast prints the URLs (or job list) that would be used and **does not** download. Sources that use custom download paths (e.g. ``ECCC_API``, ``ERA5``, ``ECMWF_NWP``) still run their builders; behavior is source-specific.
+With ``--dry-run``, Coldcast prints the URLs (or job list) that would be used and **does not** download. Sources that use custom download paths (e.g. ``ECCC_API``, ``ALBERTA_API``, ``ERA5``, ``ECMWF_NWP``) still run their builders; behavior is source-specific.
