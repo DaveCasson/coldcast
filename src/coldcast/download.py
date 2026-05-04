@@ -20,6 +20,8 @@ class DownloadRequest:
     headers: Optional[dict] = None
     auth: Optional[Tuple[str, str]] = None
     eccc_collection_key: Optional[str] = None
+    # True: default CA bundle; str: path to PEM; False: skip verification (insecure).
+    verify: bool | str = True
 
 
 def _download_one(request: DownloadRequest, output_dir: Path, timeout: int = 60) -> bool:
@@ -35,6 +37,7 @@ def _download_one(request: DownloadRequest, output_dir: Path, timeout: int = 60)
             auth=request.auth,
             stream=True,
             timeout=timeout,
+            verify=request.verify,
         ) as response:
             if response.status_code < 200 or response.status_code >= 300:
                 logger.warning("Failed to download %s (status %s)", request.url, response.status_code)

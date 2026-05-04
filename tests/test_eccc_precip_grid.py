@@ -9,23 +9,26 @@ from coldcast.sources.eccc_precip_grid import build_requests
 
 
 @pytest.mark.parametrize(
-    "model,filename_part",
+    "model,day_str,filename_part",
     [
         (
             "HREPA",
-            "20260406T00Z_MSC_HREPA_Precip-Accum06h_Sfc_RLatLon0.0225_PT0H.nc",
+            "20260413",
+            "20260413T00Z_MSC_HREPA_Precip-Accum06h_Sfc_RLatLon0.0225_PT0H.nc",
         ),
         (
             "HREPA_PCT25",
+            "20260406",
             "20260406T00Z_MSC_HREPA_Precip-Accum06h-Pct25_Sfc_RLatLon0.0225_PT0H.nc",
         ),
         (
             "HREPA_PCT75",
+            "20260406",
             "20260406T00Z_MSC_HREPA_Precip-Accum06h-Pct75_Sfc_RLatLon0.0225_PT0H.nc",
         ),
     ],
 )
-def test_hrepa_first_url(model: str, filename_part: str) -> None:
+def test_hrepa_first_url(model: str, day_str: str, filename_part: str) -> None:
     bundle = load_settings()
     settings = bundle.settings
     settings["reference_time"] = dt.datetime(2026, 4, 14, 12, 0, 0)
@@ -34,5 +37,5 @@ def test_hrepa_first_url(model: str, filename_part: str) -> None:
     first = requests_list[0]
     assert first.filename == filename_part
     assert first.url == (
-        "https://dd.weather.gc.ca/20260406/WXO-DD/model_hrepa/2.5km/00/" + filename_part
+        f"https://dd.weather.gc.ca/{day_str}/WXO-DD/model_hrepa/2.5km/00/" + filename_part
     )

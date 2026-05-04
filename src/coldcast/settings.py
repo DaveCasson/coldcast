@@ -66,6 +66,13 @@ def _resolve_relative_paths(
         if "mapping_csv" in alberta:
             alberta["mapping_csv"] = resolve_path(alberta["mapping_csv"])
 
+    if "ECCC_WATER_OFFICE" in settings and isinstance(settings["ECCC_WATER_OFFICE"], dict):
+        wo = settings["ECCC_WATER_OFFICE"]
+        if "station_csv" in wo:
+            wo["station_csv"] = resolve_path(wo["station_csv"])
+        if wo.get("http_ca_bundle"):
+            wo["http_ca_bundle"] = resolve_path(str(wo["http_ca_bundle"]))
+
     return settings
 
 

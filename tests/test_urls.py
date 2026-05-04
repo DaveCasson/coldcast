@@ -17,6 +17,7 @@ URL_SOURCES = [
     "ECCC_PRECIP_GRID",
     "ECCC_RADAR",
     "ECCC_API",
+    "ECCC_WATER_OFFICE",
     "SNOTEL",
     "SNOWCAST",
     "GLOBSNOW",

@@ -10,6 +10,35 @@ fews_name_space: "http://www.wldelft.nl/fews/PI"
 max_num_threads: 8
 wgrib2_path: "./bin/wgrib2.exe"
 
+# Default geographic extent (``lon_min``, ``lon_max``, ``lat_min``, ``lat_max``). CDS sources also
+# accept nested ``bounding_box`` / ``bbox`` as ``[North, West, South, East]``. Where supported, per-source
+# ``bbox`` / ``clip_bbox`` merges with this (product keys override).
+bounding_box:
+  lon_min: -120
+  lon_max: -110
+  lat_min: 49
+  lat_max: 60
+
+# NOMADS Grib Filter subregion (native ``leftlon`` / ``rightlon`` / ``toplat`` / ``bottomlat``).
+NOAA_NOMADS_ALASKA_BBOX: &NOAA_NOMADS_ALASKA_BBOX
+  leftlon: 190
+  rightlon: 240
+  toplat: 75
+  bottomlat: 50
+
+STUDY_CLIP_GEO_BBOX: &STUDY_CLIP_GEO_BBOX
+  lon_min: -117
+  lon_max: -113
+  lat_min: 50
+  lat_max: 52
+
+# Example large North America clip (used by HREPA percentile FEWS templates; ECMWF model YAML).
+ECMWF_DEFAULT_CLIP_BBOX: &ECMWF_DEFAULT_CLIP_BBOX
+  lon_min: -170.0
+  lon_max: -50.0
+  lat_min: 10.0
+  lat_max: 80.0
+
 ECCC_API:
   url_base: https://api.weather.gc.ca/collections
   # Per-request page size for /items (GeoMet returns at most 10000 features per response).
@@ -92,6 +121,22 @@ ECCC_API:
         - WIND_DIRECTION
         - WIND_SPEED
 
+ECCC_WATER_OFFICE:
+  url_base: "https://wateroffice.ec.gc.ca/services/real_time_data/csv/inline"
+  station_csv: "ECCC_API_Stations_Hydro.csv"
+  station_column: ID
+  # Real-time parameter codes (see Water Office station metadata).
+  parameters:
+    - "6"
+  # Set both start_date and end_date (format YYYY-MM-DD HH:MM:SS), or leave empty and use days_back from now (UTC).
+  start_date: ""
+  end_date: ""
+  days_back: 7300
+  filename_template: "{station}_water_office.csv"
+  # TLS: if you see CERTIFICATE_VERIFY_FAILED (common on Windows), try pip install -U certifi, or pip install pip-system-certs, or set http_ca_bundle to a PEM file. Last resort: http_verify_ssl: false (insecure).
+  http_verify_ssl: true
+  http_ca_bundle: ""
+
 ALBERTA_API:
   url_base: "https://rivers.alberta.ca/WiskiLiveDataService/Download"
   # "auto" = same calendar month/day as today, default_years_back years earlier (see alberta_api._resolve_from_date).
@@ -129,11 +174,7 @@ NOAA_HRRR:
   product: "wrfsfcf"
   delay_hours: 6
   cycle_interval_hours: 3
-  bbox:
-    leftlon: 190
-    rightlon: 240
-    toplat: 75
-    bottomlat: 50
+  bbox: *NOAA_NOMADS_ALASKA_BBOX
   dir_template: "/hrrr.{date}/{domain}"
   file_template: "hrrr.t{cycle_hour}z.{product}{forecast_hour:02d}{domain_suffix}.grib2"
   forecast_hours:
@@ -141,25 +182,17 @@ NOAA_HRRR:
     end: 24
     step: 1
   variables:
-    - var: APCP
+    - var: PRATE
       level: surface
     - var: TMP
       level: 2_m_above_ground
-    #- var: UGRD
-    #  level: 10_m_above_ground
-    #- var: VGRD
-    #   level: 10_m_above_ground
 
 NOAA_GFS:
   url_base: "https://nomads.ncep.noaa.gov/cgi-bin/"
   filter_script: "filter_gfs_0p25.pl"
   delay_hours: 6
   cycle_interval_hours: 6
-  bbox:
-    leftlon: 190
-    rightlon: 240
-    toplat: 75
-    bottomlat: 50
+  bbox: *NOAA_NOMADS_ALASKA_BBOX
   dir_template: "/gfs.{date}/{cycle_hour}/atmos"
   file_template: "gfs.t{cycle_hour}z.pgrb2.0p25.f{forecast_hour:03d}"
   download_suffix: ".grib2"
@@ -174,6 +207,8 @@ NOAA_GFS:
     - 21
     - 24
   variables:
+    - var: PRATE
+      level: surface
     - var: TMP
       level: 2_m_above_ground
     - var: PRMSL
@@ -188,11 +223,7 @@ NOAA_GEFS:
   filter_script: "filter_gefs_atmos_0p25s.pl"
   delay_hours: 6
   cycle_interval_hours: 6
-  bbox:
-    leftlon: 190
-    rightlon: 240
-    toplat: 75
-    bottomlat: 50
+  bbox: *NOAA_NOMADS_ALASKA_BBOX
   dir_template: "/gefs.{date}/{cycle_hour}/atmos/"
   file_template: "gep{member}.t{cycle_hour}z.pgrb2s.0p25.f{forecast_hour:03d}"
   members:
@@ -204,7 +235,7 @@ NOAA_GEFS:
     end: 24
     step: 6
   variables:
-    - var: APCP
+    - var: APCP  # PRATE not available in current NOMADS GEFS 0.25s filter
       level: surface
     - var: TMP
       level: 2_m_above_ground
@@ -221,11 +252,11 @@ ECCC_NWP:
     lead_time: 48
     delay: 6
     parameter:
-      - APCP_Sfc
+      - PRATE_Sfc
       - TMP_AGL-2m
       - SDWE_Sfc
     first_lead_time:
-      - 1
+      - 0
       - 0
       - 0
     filename_template: "{day_str}T{hour_str}Z_MSC_HRDPS_{parameter}_RLatLon0.0225_PT{lead_time_str}H.grib2"
@@ -238,10 +269,10 @@ ECCC_NWP:
     lead_time: 84
     delay: 3
     parameter:
-      - APCP_SFC_0
+      - PRATE_SFC_0
       - TMP_TGL_2
     first_lead_time:
-      - 1
+      - 0
       - 0
     filename_template: "CMC_reg_{parameter}_ps10km_{day_str}{hour_str}_P{lead_time_str}.grib2"
   GDPS:
@@ -253,10 +284,10 @@ ECCC_NWP:
     lead_time: 240
     delay: 6
     parameter:
-      - APCP_SFC_0
+      - PRATE_SFC_0
       - TMP_TGL_2
     first_lead_time:
-      - 3
+      - 0
       - 0
     filename_template: "CMC_glb_{parameter}_latlon.15x.15_{day_str}{hour_str}_P{lead_time_str}.grib2"
   REPS:
@@ -268,10 +299,10 @@ ECCC_NWP:
     lead_time: 72
     delay: 6
     parameter:
-      - APCP_SFC
+      - PRATE_Sfc
       - TMP_AGL-2m
     first_lead_time:
-      - 3
+      - 0
       - 0
     filename_template: "{day_str}T{hour_str}Z_MSC_REPS_{parameter}_RLatLon0.09x0.09_PT{lead_time_str}H.grib2"
   GEPS:
@@ -283,10 +314,10 @@ ECCC_NWP:
     lead_time: 192
     delay: 6
     parameter:
-      - APCP_SFC_0
+      - PRATE_SFC_0
       - TMP_TGL_2m
     first_lead_time:
-      - 3
+      - 0
       - 0
     filename_template: "CMC_geps-raw_{parameter}_latlon0p5x0p5_{day_str}{hour_str}_P{lead_time_str}_allmbrs.grib2"
   GEPS6hr:
@@ -298,10 +329,10 @@ ECCC_NWP:
     lead_time: 384
     delay: 6
     parameter:
-      - APCP_SFC_0
+      - PRATE_SFC_0
       - TMP_TGL_2m
     first_lead_time:
-      - 6
+      - 0
       - 0
     filename_template: "CMC_geps-raw_{parameter}_latlon0p5x0p5_{day_str}{hour_str}_P{lead_time_str}_allmbrs.grib2"
 
@@ -334,6 +365,13 @@ ECCC_PRECIP_GRID:
     delay_hours: 6
     hour_list: ["00", "06", "12", "18"]
     filename_template: "{day_str}T{hour_str}Z_MSC_HREPA_Precip-Accum06h_Sfc_RLatLon0.0225_PT0H.nc"
+    fews_netcdf:
+      enabled: false
+      clip_to_bbox: true
+      clip_bbox: *STUDY_CLIP_GEO_BBOX
+      output_suffix: "_fews"
+      output_variable_name: ""
+      include_confidence_index: false
   HREPA_PCT25:
     model: HREPA_PCT25
     url_base: "https://dd.weather.gc.ca/"
@@ -342,6 +380,13 @@ ECCC_PRECIP_GRID:
     delay_hours: 18
     hour_list: ["00", "06", "12", "18"]
     filename_template: "{day_str}T{hour_str}Z_MSC_HREPA_Precip-Accum06h-Pct25_Sfc_RLatLon0.0225_PT0H.nc"
+    fews_netcdf:
+      enabled: false
+      clip_to_bbox: true
+      clip_bbox: *ECMWF_DEFAULT_CLIP_BBOX
+      output_suffix: "_fews"
+      output_variable_name: ""
+      include_confidence_index: false
   HREPA_PCT75:
     model: HREPA_PCT75
     url_base: "https://dd.weather.gc.ca/"
@@ -350,6 +395,95 @@ ECCC_PRECIP_GRID:
     delay_hours: 18
     hour_list: ["00", "06", "12", "18"]
     filename_template: "{day_str}T{hour_str}Z_MSC_HREPA_Precip-Accum06h-Pct75_Sfc_RLatLon0.0225_PT0H.nc"
+    fews_netcdf:
+      enabled: false
+      clip_to_bbox: true
+      clip_bbox: *ECMWF_DEFAULT_CLIP_BBOX
+      output_suffix: "_fews"
+      output_variable_name: ""
+      include_confidence_index: false
+
+DYNAMICAL_CATALOG:
+  default_model: GEFS
+  GEFS:
+    dataset_id: "noaa-gefs-forecast-35-day"
+    delay_hours: 6
+    forecast_selection: pad
+    max_run_age_hours: 48
+    lead_time_hours:
+      start: 0
+      end: 336
+    bbox: *STUDY_CLIP_GEO_BBOX
+    variables:
+      - source: precipitation_surface
+        name: precipitation_flux
+        standard_name: precipitation_flux
+        long_name: Precipitation rate
+        units: kg m-2 s-1
+      - source: temperature_2m
+        name: air_temperature
+        standard_name: air_temperature
+        long_name: 2 metre air temperature
+        units: degree_Celsius
+    output_filename_template: "dynamical_gefs_{run_time:%Y%m%d%H%M}.nc"
+    xr_open_kwargs:
+      chunks: null
+    compression:
+      zlib: true
+      complevel: 1
+  HRRR:
+    dataset_id: "noaa-hrrr-forecast-48-hour"
+    delay_hours: 6
+    forecast_selection: pad
+    max_run_age_hours: 12
+    lead_time_hours:
+      start: 0
+      end: 48
+    bbox: *STUDY_CLIP_GEO_BBOX
+    variables:
+      - source: precipitation_surface
+        name: precipitation_flux
+        standard_name: precipitation_flux
+        long_name: Precipitation rate
+        units: kg m-2 s-1
+      - source: temperature_2m
+        name: air_temperature
+        standard_name: air_temperature
+        long_name: 2 metre air temperature
+        units: degree_Celsius
+    output_filename_template: "dynamical_hrrr_{run_time:%Y%m%d%H%M}.nc"
+    xr_open_kwargs:
+      chunks: null
+    compression:
+      zlib: true
+      complevel: 1
+  # ECMWF IFS ENS via dynamical.org (51 members; 00 UTC; lead 0–360 h). See CLI --model ECMWF_IFS_ENS.
+  ECMWF_IFS_ENS:
+    dataset_id: "ecmwf-ifs-ens-forecast-15-day-0-25-degree"
+    delay_hours: 12
+    forecast_selection: pad
+    max_run_age_hours: 48
+    lead_time_hours:
+      start: 0
+      end: 360
+    bbox: *STUDY_CLIP_GEO_BBOX
+    variables:
+      - source: precipitation_surface
+        name: precipitation_flux
+        standard_name: precipitation_flux
+        long_name: Precipitation rate
+        units: kg m-2 s-1
+      - source: temperature_2m
+        name: air_temperature
+        standard_name: air_temperature
+        long_name: 2 metre air temperature
+        units: degree_Celsius
+    output_filename_template: "dynamical_ecmwf_ifs_ens_{run_time:%Y%m%d%H%M}.nc"
+    xr_open_kwargs:
+      chunks: null
+    compression:
+      zlib: true
+      complevel: 1
 
 ECCC_RADAR:
   url_base: "https://hpfx.collab.science.gc.ca/"
@@ -402,11 +536,6 @@ ERA5:
   num_days_back: 10
   delay_days: 3
   grid: "0.25/0.25"
-  bounding_box:
-    - 60
-    - -120
-    - 49
-    - -110
   variables_surface_level:
     - mean_total_precipitation_rate
     - mean_surface_downward_long_wave_radiation_flux
@@ -450,11 +579,6 @@ ERA5_LAND:
   variables:
     - snow_cover
     - snow_depth_water_equivalent
-  bbox:
-    - 60
-    - -120
-    - 49
-    - -110
   hours:
     - "00:00"
     - "01:00"
@@ -503,11 +627,7 @@ ECMWF_NWP:
       - tp
       - 2t
     clip_to_bbox: true
-    clip_bbox:
-      lon_min: -170.0
-      lon_max: -50.0
-      lat_min: 10.0
-      lat_max: 80.0
+    clip_bbox: *ECMWF_DEFAULT_CLIP_BBOX
   IFS_ENS:
     ecmwf_model: ifs
     stream: enfo
@@ -528,11 +648,7 @@ ECMWF_NWP:
       - tp
       - 2t
     clip_to_bbox: true
-    clip_bbox:
-      lon_min: -170.0
-      lon_max: -50.0
-      lat_min: 10.0
-      lat_max: 80.0
+    clip_bbox: *ECMWF_DEFAULT_CLIP_BBOX
   AIFS_SINGLE:
     ecmwf_model: aifs-single
     stream: oper
@@ -552,11 +668,7 @@ ECMWF_NWP:
     parameters:
       - 2t
     clip_to_bbox: true
-    clip_bbox:
-      lon_min: -170.0
-      lon_max: -50.0
-      lat_min: 10.0
-      lat_max: 80.0
+    clip_bbox: *ECMWF_DEFAULT_CLIP_BBOX
   AIFS_ENS:
     ecmwf_model: aifs-ens
     stream: enfo
@@ -576,8 +688,4 @@ ECMWF_NWP:
     parameters:
       - 2t
     clip_to_bbox: true
-    clip_bbox:
-      lon_min: -170.0
-      lon_max: -50.0
-      lat_min: 10.0
-      lat_max: 80.0
+    clip_bbox: *ECMWF_DEFAULT_CLIP_BBOX

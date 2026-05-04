@@ -4,6 +4,7 @@ import datetime as dt
 from typing import Dict, List, Optional
 from urllib.parse import urlencode
 
+from ..bounding_box import nomads_bbox_params
 from ..download import DownloadRequest
 from ..time_utils import get_reference_time
 from ..url_templates import render_template
@@ -32,10 +33,7 @@ def build_requests(settings: Dict[str, object], model: Optional[str] = None) -> 
 
     params_common = {
         "subregion": "",
-        "leftlon": source["bbox"]["leftlon"],
-        "rightlon": source["bbox"]["rightlon"],
-        "toplat": source["bbox"]["toplat"],
-        "bottomlat": source["bbox"]["bottomlat"],
+        **nomads_bbox_params(source),
     }
 
     var_params = {}
@@ -47,11 +45,11 @@ def build_requests(settings: Dict[str, object], model: Optional[str] = None) -> 
     for forecast_hour in expand_sequence(source["forecast_hours"]):
         for member in expand_sequence(members):
             context = {
-            "date": date_str,
-            "cycle_hour": cycle_hour,
-            "forecast_hour": int(forecast_hour),
+                "date": date_str,
+                "cycle_hour": cycle_hour,
+                "forecast_hour": int(forecast_hour),
                 "member": member,
-        }
+            }
         filename = render_template(file_template, context)
         dir_value = render_template(dir_template, context)
         params = {

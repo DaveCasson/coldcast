@@ -2,10 +2,23 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 
 
-def configure_logging(level: int = logging.INFO) -> None:
-    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+def configure_logging(level: int = logging.INFO, log_file: str | None = None) -> None:
+    """Configure the root logger. Optional *log_file* adds UTF-8 file output alongside stderr."""
+    root = logging.getLogger()
+    root.setLevel(level)
+    if root.handlers:
+        return
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    stderr_h = logging.StreamHandler(sys.stderr)
+    stderr_h.setFormatter(fmt)
+    root.addHandler(stderr_h)
+    if log_file:
+        file_h = logging.FileHandler(log_file, encoding="utf-8")
+        file_h.setFormatter(fmt)
+        root.addHandler(file_h)
 
 
 def log2xml(log_file: str, xml_file: str) -> None:

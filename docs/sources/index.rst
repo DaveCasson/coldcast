@@ -14,6 +14,7 @@ Each page summarizes the upstream service, configuration block, and implementati
    eccc_radar
    eccc_api
    alberta_api
+   dynamical_catalog
    snotel
    snowcast
    globsnow

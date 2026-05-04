@@ -9,6 +9,6 @@ NOAA GEFS (``NOAA_GEFS``)
 
 **CLI:** ``coldcast download noaa_gefs``
 
-**Settings:** ``NOAA_GEFS``
+**Settings:** ``NOAA_GEFS`` — Same NOMADS ``bbox`` pattern as :doc:`noaa_hrrr`; root ``bounding_box`` does not apply to GRIB-filter URLs.
 
 **Code:** :mod:`coldcast.sources.gefs`

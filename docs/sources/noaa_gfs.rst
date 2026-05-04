@@ -9,6 +9,6 @@ NOAA GFS (``NOAA_GFS``)
 
 **CLI:** ``coldcast download noaa_gfs``
 
-**Settings:** ``NOAA_GFS``
+**Settings:** ``NOAA_GFS`` — NOMADS ``bbox`` and templates as for :doc:`noaa_hrrr` (native ``leftlon`` … fields; root ``bounding_box`` is not mapped to NOMADS).
 
 **Code:** :mod:`coldcast.sources.gfs`

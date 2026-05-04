@@ -9,6 +9,6 @@ NOAA HRRR (``NOAA_HRRR``)
 
 **CLI:** ``coldcast download noaa_hrrr [--dry-run]``
 
-**Settings:** Block ``NOAA_HRRR`` in ``default_settings.yaml`` (``delay_hours``, ``cycle_interval_hours``, ``bbox``, ``variables``, ``forecast_hours``, templates).
+**Settings:** Block ``NOAA_HRRR`` in ``default_settings.yaml`` (``delay_hours``, ``cycle_interval_hours``, NOMADS-style ``bbox``, ``variables``, ``forecast_hours``, templates). Geographic ``bounding_box`` at the settings root applies to CDS and clipping pipelines only, not NOMADS; keep ``bbox`` on this source.
 
 **Code:** :mod:`coldcast.sources.hrrr`

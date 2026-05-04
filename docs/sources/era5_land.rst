@@ -9,6 +9,6 @@ ERA5-Land (``ERA5_LAND``)
 
 **CLI:** ``coldcast download era5_land``
 
-**Settings:** ``ERA5_LAND`` — ``variables``, ``bbox``, ``hours``, ``num_days_back``, ``delay_days``.
+**Settings:** ``ERA5_LAND`` — ``variables``, ``hours``, ``num_days_back``, ``delay_days``. Extent inherits the merged top-level ``bounding_box`` and optional ``ERA5_LAND`` ``bounding_box`` or ``bbox``, same merging rules as :doc:`era5`.
 
 **Code:** :mod:`coldcast.sources.era5` (shared with ERA5)

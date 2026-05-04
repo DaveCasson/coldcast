@@ -1,4 +1,6 @@
+import csv
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -23,11 +25,15 @@ def test_eccc_api_request_carries_collection_key():
 def test_eccc_api_hydro_url_uses_station_number():
     bundle = load_settings()
     settings = bundle.settings
+    hydro_csv = Path(settings["ECCC_API"]["station_csv_hydro"])
+    with hydro_csv.open(newline="", encoding="utf-8") as handle:
+        first_row = next(csv.DictReader(handle))
+    station_id = str(first_row["ID"]).strip()
     requests_list = build_requests(settings)
     hydro = [r for r in requests_list if "hydrometric-realtime" in r.url and "STATION_NUMBER=" in r.url]
     assert hydro
-    assert "STATION_NUMBER=09AA001" in hydro[0].url
-    assert hydro[0].filename == "09AA001_hydrometric-realtime.csv"
+    assert f"STATION_NUMBER={station_id}" in hydro[0].url
+    assert hydro[0].filename == f"{station_id}_hydrometric-realtime.csv"
 
 
 def test_eccc_api_hydro_includes_clamped_page_limit_for_geomet():

@@ -33,11 +33,23 @@ def test_era5_download_calls_cdsapi(monkeypatch, tmp_path):
     bundle = load_settings(output_dir=str(tmp_path))
     settings = bundle.settings
 
-    settings["bounding_box"] = [60, -120, 49, -110]
     era5.download(settings, "ERA5")
     assert clients, "cdsapi.Client was never instantiated"
     assert clients[0].calls, "cdsapi.Client.retrieve was not called for ERA5"
     assert clients[0].calls[0][0][0] == "reanalysis-era5-single-levels"
+
+
+@pytest.mark.api_client
+def test_era5_raises_when_bbox_undefined(monkeypatch, tmp_path):
+    bundle = load_settings(output_dir=str(tmp_path))
+    settings = bundle.settings
+    settings.pop("bounding_box", None)
+    settings["ERA5"] = dict(settings["ERA5"])
+    settings["ERA5"].pop("bounding_box", None)
+    settings["ERA5"].pop("bbox", None)
+    _patch_cdsapi(monkeypatch)
+    with pytest.raises(ValueError, match="bounding_box"):
+        era5.download(settings, "ERA5")
 
 
 @pytest.mark.api_client

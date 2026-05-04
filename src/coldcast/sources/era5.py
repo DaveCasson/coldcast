@@ -1,33 +1,14 @@
 from __future__ import annotations
 
 import datetime as dt
-import math
 from typing import Dict, List, Optional
 
+from ..bounding_box import resolve_era5_cds_sequence, round_cds_area_string
 from ..download import DownloadRequest
 
 
 def build_requests(settings: Dict[str, object], model: Optional[str] = None) -> List[DownloadRequest]:
     return []
-
-
-def _round_coords(coords):
-    lon = [coords[1], coords[3]]
-    lat = [coords[2], coords[0]]
-
-    rounded_lon = [math.floor(lon[0] * 4) / 4, math.ceil(lon[1] * 4) / 4]
-    rounded_lat = [math.floor(lat[0] * 4) / 4, math.ceil(lat[1] * 4) / 4]
-
-    if lat[0] > rounded_lat[0] + 0.125:
-        rounded_lat[0] += 0.25
-    if lon[0] > rounded_lon[0] + 0.125:
-        rounded_lon[0] += 0.25
-    if lat[1] < rounded_lat[1] - 0.125:
-        rounded_lat[1] -= 0.25
-    if lon[1] < rounded_lon[1] - 0.125:
-        rounded_lon[1] -= 0.25
-
-    return "{}/{}/{}/{}".format(rounded_lat[1], rounded_lon[0], rounded_lat[0], rounded_lon[1])
 
 
 def download(settings: Dict[str, object], data_source: str) -> None:
@@ -38,9 +19,8 @@ def download(settings: Dict[str, object], data_source: str) -> None:
 
     if data_source == "ERA5":
         cfg = settings["ERA5"]
-        bounding_box = settings.get("bounding_box", cfg.get("bbox"))
-        if not bounding_box:
-            raise ValueError("bounding_box is required for ERA5 downloads.")
+        seq = resolve_era5_cds_sequence(settings, cfg)
+        coordinates = round_cds_area_string(seq)
 
         num_days_back = int(cfg["num_days_back"])
         delay_days = int(cfg["delay_days"])
@@ -48,7 +28,6 @@ def download(settings: Dict[str, object], data_source: str) -> None:
         grid = cfg["grid"]
         hours = cfg["hours"]
 
-        coordinates = _round_coords(bounding_box)
         ref_date = settings.get("reference_time") or dt.datetime.utcnow()
         end_date = ref_date - dt.timedelta(days=delay_days)
         start_date = end_date - dt.timedelta(days=num_days_back)
@@ -79,13 +58,13 @@ def download(settings: Dict[str, object], data_source: str) -> None:
 
     elif data_source == "ERA5_LAND":
         cfg = settings["ERA5_LAND"]
-        bounding_box = cfg["bbox"]
+        seq = resolve_era5_cds_sequence(settings, cfg)
+        coordinates = round_cds_area_string(seq)
         num_days_back = int(cfg["num_days_back"])
         delay_days = int(cfg["delay_days"])
         variables = cfg["variables"]
         hours = cfg["hours"]
 
-        coordinates = _round_coords(bounding_box)
         ref_date = settings.get("reference_time") or dt.datetime.utcnow()
         end_date = ref_date - dt.timedelta(days=delay_days)
         start_date = end_date - dt.timedelta(days=num_days_back)
