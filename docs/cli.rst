@@ -22,4 +22,10 @@ creates it automatically.
 Dry-run
 -------
 
-With ``--dry-run``, Coldcast prints the URLs (or job list) that would be used and **does not** download. Sources that use custom download paths (e.g. ``ECCC_API``, ``ALBERTA_API``, ``ERA5``, ``ECMWF_NWP``) still run their builders; behavior is source-specific.
+With ``--dry-run``, Coldcast prints the URLs (or job list) that would be used and **does not** download. Sources that use custom download paths (for example GeoMet-style APIs, regional station services, CDS jobs, or ECMWF open-data clients) still run their planners; exact behavior is documented on each source page.
+
+See also
+--------
+
+* :doc:`configuration` for YAML structure shared across sources.
+* :doc:`sources/index` for per-source notes and upstream links.

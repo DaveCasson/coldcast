@@ -1,7 +1,14 @@
 Data sources
 ============
 
-Each page summarizes the upstream service, configuration block, and implementation module. CLI names are lowercase (e.g. ``coldcast download noaa_hrrr``).
+Each page summarizes the upstream service, the YAML configuration block, and the implementation
+module. CLI names are lower-case (for example ``coldcast download noaa_hrrr``); several sources
+also accept upper-case aliases that match the settings keys.
+
+Gridded NWP from the `NOMADS Grib Filter <https://nomads.ncep.noaa.gov/>`_, station or CSV-heavy
+APIs, CDS-style reanalysis jobs, ECMWF open-data retrievals, and Zarr/dynamical.org catalog
+outputs all follow this pattern—start from the bundled defaults and adjust templates or model
+keys for your workflow.
 
 .. toctree::
    :maxdepth: 1

@@ -29,23 +29,23 @@ After ``pip install -e .``, do **not** run:
 That form asks Python to open a local file named ``coldcast`` and will fail with
 ``can't open file ...`` when no such file exists.
 
-Use either the generated console script:
+Use the **console script** that ``pip`` registers for your environment (typical location:
+``<Python root>\Scripts\coldcast.exe``), for example:
 
 .. code-block:: powershell
 
-   C:\GitHub\OpenFEWS\Modules\Python311\Scripts\coldcast.exe --help
-   C:\GitHub\OpenFEWS\Modules\Python311\Scripts\coldcast.exe download noaa_hrrr --dry-run
+   coldcast --help
+   coldcast download noaa_hrrr --dry-run
 
-or run the CLI module directly:
+If ``coldcast`` is not recognized, run it with a full path to ``coldcast.exe``, or add your
+environment’s ``Scripts`` directory to ``PATH``.
+
+Alternatively, invoke the package module (works with the same interpreter you used for ``pip``):
 
 .. code-block:: powershell
 
-   C:\GitHub\OpenFEWS\Modules\Python311\python.exe -m coldcast.cli --help
-   C:\GitHub\OpenFEWS\Modules\Python311\python.exe -m coldcast.cli download noaa_hrrr --dry-run
-
-If ``coldcast.exe`` is reported as installed but not found, add your Python
-``Scripts`` directory to ``PATH`` (for example,
-``C:\GitHub\OpenFEWS\Modules\Python311\Scripts``).
+   py -3.11 -m coldcast.cli --help
+   py -3.11 -m coldcast.cli download noaa_hrrr --dry-run
 
 Using Poetry
 ------------

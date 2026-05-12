@@ -1,7 +1,13 @@
 Run-info overrides
 ==================
 
-You can supply **Delft-FEWS** run information so Coldcast uses FEWS reference times, output directories, and logging settings.
+You can supply **Delft-FEWS** run information so Coldcast uses FEWS reference times, output
+directories, and logging settings instead of only the defaults from YAML. Paths may be set on the
+CLI (see :doc:`cli`) or in your settings file under keys such as ``run_info_file`` and
+``run_info_netcdf``.
+
+Many download jobs **do not** require run info; use these options when you operate inside a
+FEWS workflow or need a netCDF ``time0`` (or equivalent) to anchor model cycles.
 
 XML run info (``--run-info-file``)
 ----------------------------------
